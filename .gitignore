@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.log
+winampz.db
+winampz.db-wal
+winampz.db-shm
+static/uploads/*
+!static/uploads/youtube/
+static/uploads/youtube/*
+static/transcoded/*
+youtube_cookies.txt
+.venv/
+venv/

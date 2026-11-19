@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinampZ - Web Media Player</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/winamp.css') }}">
+</head>
+<body>
+<div class="desktop" id="desktop">
+
+  <!-- ============ MAIN PLAYER WINDOW ============ -->
+  <section class="winamp-window main-window" id="main-window" style="top:16px;left:16px;">
+    <header class="titlebar" data-drag-handle>
+      <span class="titlebar-title">WINAMPZ <small>*</small></span>
+      <div class="titlebar-buttons">
+        <button type="button" data-action="toggle-library" class="chrome-btn" title="Media Library">LIB</button>
+        <button type="button" data-action="toggle-eq" class="chrome-btn" title="Equalizer">EQ</button>
+        <button type="button" data-action="toggle-playlist" class="chrome-btn" title="Playlist Editor">PL</button>
+      </div>
+    </header>
+
+    <div class="main-body">
+      <div class="lcd-screen" id="lcd-screen">
+        <div class="lcd-marquee-wrap">
+          <div class="lcd-marquee" id="lcd-marquee">
+            <span id="lcd-marquee-text">WINAMPZ WEB PLAYER *** LOAD A TRACK FROM THE LIBRARY OR PLAYLIST TO BEGIN ***</span>
+          </div>
+        </div>
+
+        <canvas id="visualizer-canvas" class="visualizer-canvas" width="296" height="54"></canvas>
+
+        <div class="lcd-stats-row">
+          <span class="lcd-time" id="lcd-time" title="Click to toggle elapsed / remaining">00:00</span>
+          <span class="lcd-stat-group">
+            <span class="lcd-stat"><span id="lcd-bitrate-value">0</span><small>kbps</small></span>
+            <span class="lcd-stat"><span id="lcd-samplerate-value">0</span><small>kHz</small></span>
+            <span class="lcd-stat" id="lcd-channels">st.</span>
+          </span>
+          <span class="lcd-indicators">
+            <span class="lcd-indicator" id="ind-play">&#9654;</span>
+            <span class="lcd-indicator" id="ind-shuffle">SHUF</span>
+            <span class="lcd-indicator" id="ind-repeat">REP</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="seek-row">
+        <input type="range" id="seek-slider" min="0" max="1000" value="0" step="1" class="seek-slider" title="Seek">
+      </div>
+
+      <div class="controls-row">
+        <div class="transport-buttons">
+          <button type="button" id="btn-prev" class="transport-btn" title="Previous">&#9198;</button>
+          <button type="button" id="btn-play" class="transport-btn play-btn" title="Play">&#9654;</button>
+          <button type="button" id="btn-pause" class="transport-btn" title="Pause">&#10074;&#10074;</button>
+          <button type="button" id="btn-stop" class="transport-btn" title="Stop">&#9632;</button>
+          <button type="button" id="btn-next" class="transport-btn" title="Next">&#9197;</button>
+          <button type="button" id="btn-eject" class="transport-btn eject-btn" title="Open files">EJECT</button>
+        </div>
+
+        <div class="toggle-buttons">
+          <button type="button" id="btn-shuffle" class="toggle-btn" title="Shuffle">SHUF</button>
+          <button type="button" id="btn-repeat" class="toggle-btn" title="Repeat (off)" data-mode="none">REP</button>
+          <button type="button" id="btn-viz-mode" class="toggle-btn" title="Visualizer mode">BARS</button>
+        </div>
+      </div>
+
+      <div class="sliders-row">
+        <div class="slider-group">
+          <label for="volume-slider">VOL</label>
+          <input type="range" id="volume-slider" min="0" max="100" value="80" class="horiz-slider vol-slider">
+        </div>
+        <div class="slider-group">
+          <label for="balance-slider">BAL</label>
+          <input type="range" id="balance-slider" min="-100" max="100" value="0" class="horiz-slider bal-slider">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EQUALIZER WINDOW ============ -->
+  <section class="winamp-window eq-window hidden" id="eq-window" style="top:300px;left:16px;">
+    <header class="titlebar" data-drag-handle>
+      <span class="titlebar-title">GRAPHIC EQUALIZER</span>
+      <div class="titlebar-buttons">
+        <button type="button" class="chrome-btn close-btn" data-action="toggle-eq" title="Close">X</button>
+      </div>
+    </header>
+    <div class="eq-body">
+      <div class="eq-top-row">
+        <label class="eq-on-toggle">
+          <input type="checkbox" id="eq-enabled-checkbox"> <span>ON</span>
+        </label>
+        <select id="eq-preset-select" class="eq-preset-select">
+          <option value="Flat">Flat</option>
+          <option value="Rock">Rock</option>
+          <option value="Pop">Pop</option>
+          <option value="Jazz">Jazz</option>
+          <option value="Bass Boost">Bass Boost</option>
+          <option value="Custom">Custom</option>
+        </select>
+      </div>
+      <div class="eq-sliders" id="eq-sliders">
+        <div class="eq-band preamp-band" data-band="preamp">
+          <div class="slider-vertical-wrap">
+            <input type="range" min="-12" max="12" step="1" value="0" class="eq-vertical-slider" id="eq-preamp">
+          </div>
+          <span class="eq-value" id="eq-value-preamp">0</span>
+          <span class="eq-label">PRE</span>
+        </div>
+        <div class="eq-divider"></div>
+        {% for band in [
+          {'freq': 60, 'label': '60'},
+          {'freq': 170, 'label': '170'},
+          {'freq': 310, 'label': '310'},
+          {'freq': 600, 'label': '600'},
+          {'freq': 1000, 'label': '1K'},
+          {'freq': 3000, 'label': '3K'},
+          {'freq': 6000, 'label': '6K'},
+          {'freq': 12000, 'label': '12K'},
+          {'freq': 14000, 'label': '14K'},
+          {'freq': 16000, 'label': '16K'}
+        ] %}
+        <div class="eq-band" data-band="{{ loop.index0 }}" data-freq="{{ band.freq }}">
+          <div class="slider-vertical-wrap">
+            <input type="range" min="-12" max="12" step="1" value="0" class="eq-vertical-slider" id="eq-band-{{ loop.index0 }}">
+          </div>
+          <span class="eq-value" id="eq-value-{{ loop.index0 }}">0</span>
+          <span class="eq-label">{{ band.label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VIDEO VIEWPORT ============ -->
+  <section class="winamp-window video-window hidden" id="video-window" style="top:16px;left:460px;">
+    <header class="titlebar" data-drag-handle>
+      <span class="titlebar-title">VIDEO</span>
+      <div class="titlebar-buttons">
+        <button type="button" class="chrome-btn" id="btn-video-fullscreen" title="Fullscreen">[ ]</button>
+        <button type="button" class="chrome-btn close-btn" data-action="toggle-video" title="Close">X</button>
+      </div>
+    </header>
+    <div class="video-body">
+      <video id="video-el" class="video-el" playsinline></video>
+      <div class="video-overlay-msg hidden" id="video-overlay-msg">TRANSCODING...</div>
+    </div>
+  </section>
+
+  <!-- ============ PLAYLIST EDITOR ============ -->
+  <section class="winamp-window playlist-window hidden" id="playlist-window" style="top:300px;left:460px;">
+    <header class="titlebar" data-drag-handle>
+      <span class="titlebar-title">PLAYLIST EDITOR</span>
+      <div class="titlebar-buttons">
+        <button type="button" class="chrome-btn close-btn" data-action="toggle-playlist" title="Close">X</button>
+      </div>
+    </header>
+    <div class="playlist-body">
+      <div class="playlist-toolbar">
+        <select id="playlist-select" title="Active playlist"></select>
+        <button type="button" id="btn-new-playlist" class="chrome-btn" title="New playlist">+</button>
+        <button type="button" id="btn-delete-playlist" class="chrome-btn" title="Delete playlist">-</button>
+      </div>
+      <input type="text" id="playlist-search" class="text-input" placeholder="Search current playlist...">
+      <ul class="playlist-list" id="playlist-list"></ul>
+      <div class="playlist-footer">
+        <span class="playlist-summary" id="playlist-summary">0 items / 00:00</span>
+        <button type="button" id="btn-playlist-clear" class="chrome-btn">CLEAR</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MEDIA LIBRARY ============ -->
+  <section class="winamp-window library-window hidden" id="library-window" style="top:16px;left:904px;">
+    <header class="titlebar" data-drag-handle>
+      <span class="titlebar-title">MEDIA LIBRARY</span>
+      <div class="titlebar-buttons">
+        <button type="button" class="chrome-btn close-btn" data-action="toggle-library" title="Close">X</button>
+      </div>
+    </header>
+    <div class="library-body">
+      <input type="text" id="library-search" class="text-input" placeholder="Search library...">
+      <div class="scan-row">
+        <input type="text" id="scan-directory-input" class="text-input" placeholder="Folder path to scan, e.g. C:\Music">
+        <button type="button" id="btn-scan" class="chrome-btn">SCAN</button>
+      </div>
+      <div class="dropzone" id="dropzone">
+        <span>Drag &amp; drop audio / video files here</span>
+        <label class="file-input-label">
+          or browse&hellip;
+          <input type="file" id="file-input" multiple hidden accept=".mp3,.wav,.ogg,.flac,.m4a,.aac,.mp4,.webm,.mkv,.avi">
+        </label>
+      </div>
+      <div class="youtube-row">
+        <input type="text" id="youtube-url-input" class="text-input" placeholder="YouTube video or playlist URL">
+        <select id="youtube-format-select">
+          <option value="audio">Audio</option>
+          <option value="video">Video</option>
+        </select>
+        <button type="button" id="btn-youtube-import" class="chrome-btn">IMPORT</button>
+      </div>
+      <div class="youtube-progress hidden" id="youtube-progress"></div>
+      <ul class="library-list" id="library-list"></ul>
+    </div>
+  </section>
+
+  <!-- ============ CONTEXT MENU ============ -->
+  <ul class="context-menu hidden" id="context-menu">
+    <li data-action="play">Play</li>
+    <li data-action="add-to-playlist">Add to Playlist</li>
+    <li data-action="remove">Remove</li>
+    <li data-action="info">File Info&hellip;</li>
+  </ul>
+
+  <!-- ============ FILE INFO MODAL ============ -->
+  <div class="modal hidden" id="info-modal">
+    <div class="modal-box">
+      <header class="titlebar">
+        <span class="titlebar-title">FILE INFO</span>
+        <button type="button" class="chrome-btn close-btn" id="btn-close-modal">X</button>
+      </header>
+      <div class="modal-body" id="info-modal-body"></div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <audio id="audio-el" preload="metadata"></audio>
+</div>
+
+<script src="{{ url_for('static', filename='js/player.js') }}"></script>
+</body>
+</html>
