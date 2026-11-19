@@ -32,6 +32,11 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 TRANSCODE_DIR.mkdir(parents=True, exist_ok=True)
 YOUTUBE_DIR.mkdir(parents=True, exist_ok=True)
 
+# Must run at import time (not just under `python app.py`) so the schema
+# exists when a WSGI server (gunicorn/uWSGI/PythonAnywhere, etc.) imports
+# this module directly without ever executing the __main__ block below.
+db.init_db()
+
 # Some videos (age-restricted, or ones YouTube has flagged for bot-detection)
 # fail with a "Please sign in" error unless yt-dlp is given credentials.
 # Opt in via one of:
@@ -718,5 +723,4 @@ def api_settings_set():
 
 
 if __name__ == "__main__":
-    db.init_db()
     app.run(host="0.0.0.0", port=5000, debug=True, threaded=True)
